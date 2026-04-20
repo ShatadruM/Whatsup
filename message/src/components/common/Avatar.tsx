@@ -1,7 +1,8 @@
+import React from 'react';
 import { UserStatus } from '../../types';
 
 interface AvatarProps {
-  name: string;
+  username?: string; // Made optional so it won't crash if data is loading
   src?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   status?: UserStatus;
@@ -40,13 +41,19 @@ const avatarColors = [
   'bg-sky-500',
 ];
 
-function getAvatarColor(name: string): string {
-  const index = name.charCodeAt(0) % avatarColors.length;
+// Added safety fallback if username is undefined
+function getAvatarColor(username?: string): string {
+  if (!username) return 'bg-slate-600';
+  
+  const index = username.charCodeAt(0) % avatarColors.length;
   return avatarColors[index];
 }
 
-function getInitials(name: string): string {
-  return name
+// Added safety fallback if username is undefined
+function getInitials(username?: string): string {
+  if (!username) return '?';
+  
+  return username
     .split(' ')
     .map((n) => n[0])
     .slice(0, 2)
@@ -54,16 +61,18 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-export default function Avatar({ name, src, size = 'md', status, showStatus = false }: AvatarProps) {
+export default function Avatar({ username, src, size = 'md', status, showStatus = false }: AvatarProps) {
   return (
     <div className="relative flex-shrink-0">
-      <div className={`${sizeClasses[size]} rounded-full overflow-hidden flex items-center justify-center font-semibold text-white ${!src ? getAvatarColor(name) : ''}`}>
+      {/* Fixed getAvatarColor(name) -> getAvatarColor(username) */}
+      <div className={`${sizeClasses[size]} rounded-full overflow-hidden flex items-center justify-center font-semibold text-white ${!src ? getAvatarColor(username) : ''}`}>
         {src ? (
-          <img src={src} alt={name} className="w-full h-full object-cover" />
+          <img src={src} alt={username || 'User Avatar'} className="w-full h-full object-cover" />
         ) : (
-          <span>{getInitials(name)}</span>
+          <span>{getInitials(username)}</span>
         )}
       </div>
+      
       {showStatus && status && (
         <span className={`absolute bottom-0 right-0 rounded-full border-slate-900 ${statusDotSize[size]} ${statusColors[status]}`} />
       )}

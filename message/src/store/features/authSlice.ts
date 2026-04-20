@@ -3,7 +3,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 // 1. Define the shapes of our state
 interface User {
-  id: string;
+  _id: string;
   username: string;
   email: string;
   status: string;
@@ -25,7 +25,6 @@ export interface Message {
 }
 
 export interface Chat {
-  id: string; // Mapping MongoDB _id to id for the UI
   _id: string;
   type: '1:1' | 'group';
   chatName?: string;

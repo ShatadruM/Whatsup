@@ -1,5 +1,6 @@
 import { Conversation } from '../../types';
 import ConversationItem from './ConversationItem';
+import { useAppSelector } from '../../store/hooks'; // Need this to identify the logged-in user
 
 interface ConversationListProps {
   conversations: Conversation[];
@@ -9,11 +10,28 @@ interface ConversationListProps {
 }
 
 export default function ConversationList({ conversations, activeId, onSelect, searchQuery }: ConversationListProps) {
-  const dms = conversations.filter((c) => c.type === 'dm');
-  const groups = conversations.filter((c) => c.type === 'group');
+  // Grab the logged-in user to calculate who the "other" person is in 1:1 chats
+  const currentUser = useAppSelector((state) => state.auth.user);
 
+  // Helper function to safely get the display name for ANY chat
+  const getChatName = (chat: any) => {
+    if (chat.type === 'group') return chat.chatName || 'Group Chat';
+    
+    // For 1:1 chats, find the participant that is NOT the current user
+    const otherUser = chat.participants?.find((p: any) => p._id !== currentUser?._id);
+    return otherUser?.username || 'Unknown User';
+  };
+
+  // 1. Update 'dm' to '1:1' to match your MongoDB schema
+  const dms = conversations.filter((c: any) => c.type === '1:1');
+  const groups = conversations.filter((c: any) => c.type === 'group');
+
+  // 2. Update the filter to use the dynamic chat name
   const filterConversations = (list: Conversation[]) =>
-    list.filter((c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    list.filter((c) => {
+      const displayName = getChatName(c);
+      return displayName.toLowerCase().includes(searchQuery.toLowerCase());
+    });
 
   const filteredDMs = filterConversations(dms);
   const filteredGroups = filterConversations(groups);
@@ -36,10 +54,13 @@ export default function ConversationList({ conversations, activeId, onSelect, se
           <div className="flex flex-col gap-0.5">
             {filteredDMs.map((conv) => (
               <ConversationItem
-                key={conv.id}
+                key={conv._id}
                 conversation={conv}
-                isActive={activeId === conv.id}
+                isActive={activeId === conv._id}
                 onClick={() => onSelect(conv)}
+                // Optional: You might need to pass the calculated name down here 
+                // if ConversationItem is also still trying to read `conv.name`
+                // displayName={getChatName(conv)} 
               />
             ))}
           </div>
@@ -54,9 +75,9 @@ export default function ConversationList({ conversations, activeId, onSelect, se
           <div className="flex flex-col gap-0.5">
             {filteredGroups.map((conv) => (
               <ConversationItem
-                key={conv.id}
+                key={conv._id}
                 conversation={conv}
-                isActive={activeId === conv.id}
+                isActive={activeId === conv._id}
                 onClick={() => onSelect(conv)}
               />
             ))}

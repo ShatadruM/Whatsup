@@ -3,7 +3,7 @@ export type MessageStatus = 'sent' | 'delivered' | 'read';
 export type UserStatus = 'online' | 'offline' | 'away' | 'busy';
 
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   avatar?: string;
   status: UserStatus;
@@ -11,7 +11,7 @@ export interface User {
 }
 
 export interface Message {
-  id: string;
+  _id: string;
   senderId: string;
   senderName: string;
   senderAvatar?: string;
@@ -23,9 +23,9 @@ export interface Message {
 }
 
 export interface Conversation {
-  id: string;
+  _id: string;
   type: 'dm' | 'group';
-  name: string;
+  username: string;
   avatar?: string;
   lastMessage: string;
   lastMessageTime: string;

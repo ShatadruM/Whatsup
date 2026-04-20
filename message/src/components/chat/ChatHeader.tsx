@@ -1,9 +1,10 @@
 import { Phone, Video, Info, Users, Search, MoreHorizontal } from 'lucide-react';
-import { Conversation } from '../../types';
+// import { Conversation } from '../../types'; // Temporarily ignore old types
 import Avatar from '../common/Avatar';
+import { useAppSelector } from '../../store/hooks'; // ADDED THIS
 
 interface ChatHeaderProps {
-  conversation: Conversation;
+  conversation: any; // Switched to any to prevent mock data type conflicts
   onInfoToggle: () => void;
   showInfo: boolean;
 }
@@ -16,7 +17,26 @@ const statusLabel: Record<string, string> = {
 };
 
 export default function ChatHeader({ conversation, onInfoToggle, showInfo }: ChatHeaderProps) {
-  const { type, name, isOnline, status, memberCount, description, isTyping } = conversation;
+  // 1. Grab current user
+  const currentUser = useAppSelector((state) => state.auth.user);
+  
+  const { type, isTyping } = conversation;
+
+  // 2. Dynamically calculate the name and status
+  let displayName = 'Unknown User';
+  let displayStatus = 'Offline';
+
+  if (type === 'group') {
+    displayName = conversation.chatName || 'Group Chat';
+    const memberCount = conversation.participants?.length || 0;
+    displayStatus = `${memberCount} members`;
+  } else {
+    // 1:1 Chat
+    const otherUser = conversation.participants?.find((p: any) => p._id !== currentUser?._id);
+    displayName = otherUser?.username || 'Unknown User';
+    // Use the statusLabel map safely
+    displayStatus = otherUser?.status ? statusLabel[otherUser.status] : 'Offline';
+  }
 
   return (
     <div className="h-16 px-5 flex items-center justify-between border-b border-slate-100 bg-white flex-shrink-0">
@@ -26,11 +46,15 @@ export default function ChatHeader({ conversation, onInfoToggle, showInfo }: Cha
             <Users size={18} className="text-blue-500" />
           </div>
         ) : (
-          <Avatar name={name} size="md" status={status} showStatus />
+          <>
+           <Avatar username={displayName} size="md" status={displayStatus === 'Offline' ? 'offline' : 'online'} showStatus />
+           </>
+         
         )}
 
         <div>
-          <h2 className="font-semibold text-slate-800 text-sm leading-tight">{name}</h2>
+          {/* 4. Display the calculated name */}
+          <h2 className="font-semibold text-slate-800 text-sm leading-tight">{displayName}</h2>
           {isTyping ? (
             <div className="flex items-center gap-1 text-xs text-emerald-500">
               <span>typing</span>
@@ -42,14 +66,13 @@ export default function ChatHeader({ conversation, onInfoToggle, showInfo }: Cha
             </div>
           ) : (
             <p className="text-xs text-slate-400">
-              {type === 'dm'
-                ? status ? statusLabel[status] : 'Offline'
-                : description || `${memberCount} members`}
+              {displayStatus}
             </p>
           )}
         </div>
       </div>
 
+      {/* ... The rest of your buttons (Search, Phone, Video) remain exactly the same ... */}
       <div className="flex items-center gap-1">
         <button className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition" title="Search in conversation">
           <Search size={17} />
