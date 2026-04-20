@@ -4,7 +4,7 @@ export type UserStatus = 'online' | 'offline' | 'away' | 'busy';
 
 export interface User {
   _id: string;
-  name: string;
+  username: string;
   avatar?: string;
   status: UserStatus;
   lastSeen?: string;

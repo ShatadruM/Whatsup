@@ -32,7 +32,7 @@ export default function MessageList({ messages, isGroupChat }: MessageListProps)
   return (
     <div className="flex-1 overflow-y-auto px-4 py-4 bg-slate-50">
       {messages.map((message, index) => (
-        <div key={message.id}>
+        <div key={message._id}>
           {isNewDay(messages, index) && (
             <div className="flex items-center gap-3 my-4">
               <div className="flex-1 h-px bg-slate-200" />

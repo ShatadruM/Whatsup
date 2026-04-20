@@ -16,7 +16,7 @@ const statusLabel: Record<string, string> = {
 };
 
 export default function InfoPanel({ conversation, members, onClose }: InfoPanelProps) {
-  const { type, name, description, memberCount } = conversation;
+  const { type, username, description, memberCount } = conversation;
 
   return (
     <div className="w-72 flex-shrink-0 bg-white border-l border-slate-100 flex flex-col h-full">
@@ -41,14 +41,14 @@ export default function InfoPanel({ conversation, members, onClose }: InfoPanelP
           ) : (
             <div className="mb-4">
               <Avatar
-                name={name}
+                username={username}
                 size="lg"
                 status={conversation.status}
                 showStatus
               />
             </div>
           )}
-          <h2 className="font-bold text-slate-800 text-lg text-center">{name}</h2>
+          <h2 className="font-bold text-slate-800 text-lg text-center">{username}</h2>
           {description && (
             <p className="text-sm text-slate-500 text-center mt-1">{description}</p>
           )}
@@ -87,11 +87,11 @@ export default function InfoPanel({ conversation, members, onClose }: InfoPanelP
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Members</p>
             <div className="flex flex-col gap-1">
               {members.map((member) => (
-                <div key={member.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition">
-                  <Avatar name={member.name} size="sm" status={member.status} showStatus />
+                <div key={member._id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition">
+                  <Avatar username={member.username} size="sm" status={member.status} showStatus />
                   <div>
                     <p className="text-sm font-medium text-slate-700">
-                      {member.id === 'me' ? `${member.name} (You)` : member.name}
+                      {member._id === 'me' ? `${member.username} (You)` : member.username }
                     </p>
                     <p className={`text-xs capitalize ${
                       member.status === 'online' ? 'text-emerald-500' :

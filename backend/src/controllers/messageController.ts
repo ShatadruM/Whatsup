@@ -1,7 +1,17 @@
 import { Response } from 'express';
-import Message from '../models/Message';
+import Message, { MediaType } from '../models/Message'; // Added MediaType here
 import Chat from '../models/Chat';
 import { AuthRequest } from '../middleware/authMiddleware';
+import { v2 as cloudinary } from 'cloudinary'; // Added Cloudinary import
+import dotenv from 'dotenv';
+
+dotenv.config();
+// 1. Configure Cloudinary right at the top
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export const getMessages = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -90,5 +100,64 @@ export const deleteMessage = async (req: AuthRequest, res: Response): Promise<vo
     res.status(200).json(message);
   } catch (error) {
     res.status(500).json({ message: 'Error deleting message' });
+  }
+};
+
+// --- THE NEW MEDIA FUNCTION ---
+export const sendMessageWithMedia = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { content, chatId } = req.body;
+    const currentUserId = req.user?.userId; 
+
+    if (!chatId) {
+      res.status(400).json({ message: 'Invalid data passed into request' });
+      return;
+    }
+
+    let mediaUrl = undefined;
+    let mediaType: MediaType = null;
+    let mediaName = undefined;
+
+    // If a file exists, upload to Cloudinary
+    if (req.file) {
+      // Convert memory buffer to Base64
+      const b64 = Buffer.from(req.file.buffer).toString('base64');
+      const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+      
+      const uploadResponse = await cloudinary.uploader.upload(dataURI, {
+        folder: 'chat_media',
+        resource_type: 'auto' 
+      });
+      
+      mediaUrl = uploadResponse.secure_url;
+      mediaName = req.file.originalname; 
+
+      if (uploadResponse.resource_type === 'image') {
+        mediaType = 'image';
+      } else if (uploadResponse.resource_type === 'video') {
+        mediaType = req.file.mimetype.startsWith('audio') ? 'audio' : 'video';
+      } else if (uploadResponse.resource_type === 'raw') {
+        mediaType = 'document'; 
+      }
+    }
+
+    let newMessage = await Message.create({
+      senderId: currentUserId,
+      chatId: chatId,
+      content: content || '', 
+      mediaUrl,
+      mediaType,
+      mediaName
+    });
+
+    newMessage = await newMessage.populate('senderId', 'username avatar status');
+    newMessage = await newMessage.populate('chatId');
+
+    await Chat.findByIdAndUpdate(chatId, { updatedAt: new Date() });
+
+    res.status(201).json(newMessage);
+  } catch (error) {
+    console.error("Media upload error:", error);
+    res.status(500).json({ message: 'Server error sending media' });
   }
 };

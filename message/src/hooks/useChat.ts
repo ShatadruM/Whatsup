@@ -150,26 +150,59 @@
     }
   };
 
-    const sendMessage = useCallback(async (text: string) => {
-      if (!text.trim() || !activeConversation || !socket) return;
+   const sendMessage = useCallback(async (text: string, file: File | null = null) => {
+  // 1. UPDATED VALIDATION: Allow send if there is text OR a file
+  if ((!text.trim() && !file) || !activeConversation || !socket) return;
 
-      try {
-        // 1. Save to MongoDB via API
-        const { data } = await axios.post(`${ENDPOINT}/api/messages`, {
-          content: text,
-          chatId: activeConversation._id,
-        });
+  try {
+    let responseData;
 
-        // 2. Update Redux immediately so the UI feels instant
-        dispatch(addMessage(data));
-
-        // 3. Broadcast to other users in the room
-        socket.emit('new message', data);
-        
-      } catch (error) {
-        console.error("Failed to send message", error);
+    // 2. CHECK IF IT IS A MEDIA MESSAGE OR TEXT MESSAGE
+    if (file) {
+      // --- MEDIA UPLOAD ---
+      // We must use FormData to send files to the Express server
+      const formData = new FormData();
+      
+      // 'media' MUST match the name in your Express route: upload.single('media')
+      formData.append('media', file); 
+      formData.append('chatId', activeConversation._id);
+      if (text.trim()) {
+        formData.append('content', text); // Optional text caption
       }
-    }, [activeConversation, socket, dispatch]);
+
+      // POST to the new /media route
+      const { data } = await axios.post(`${ENDPOINT}/api/messages/media`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          // Note: Your Authorization token should automatically attach if we set it up in Axios defaults!
+        },
+      });
+      responseData = data;
+
+    } else {
+      // --- REGULAR TEXT MESSAGE ---
+      // POST to the original route
+      const { data } = await axios.post(`${ENDPOINT}/api/messages`, {
+        content: text,
+        chatId: activeConversation._id,
+      });
+      responseData = data;
+    }
+
+    // 3. Update Redux immediately so the UI feels instant
+    dispatch(addMessage(responseData));
+
+    // 4. Broadcast to other users in the room
+    socket.emit('new message', responseData);
+    
+  } catch (error: any) {
+    console.error("Failed to send message", error);
+    // Optional: If you get a 413 error, the file was larger than the 15MB limit in multer
+    if (error.response?.status === 413) {
+      alert("File is too large!");
+    }
+  }
+}, [activeConversation, socket, dispatch]);
 
     return {
       conversations,

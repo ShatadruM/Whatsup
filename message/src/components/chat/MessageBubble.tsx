@@ -14,33 +14,20 @@ export default function MessageBubble({ message, showAvatar, showName, isGroupCh
   const currentUser = useAppSelector((state) => state.auth.user);
 
   // 2. THE BULLETPROOF ID CHECK
-  // Grab the sender ID (checking both _id, id, or if it's just a raw string)
   const rawSenderId = message.senderId?._id || message.senderId?.id || message.senderId;
-  
-  // Grab your ID (checking both _id and id just in case your auth route uses 'id')
   const rawMyId = currentUser?._id || (currentUser as any)?.id;
 
-  // Force both to be strings so JavaScript doesn't fail a type comparison
   const safeSenderId = String(rawSenderId);
   const safeMyId = String(rawMyId);
 
-  // Now compare the strings
   const isMe = safeSenderId === safeMyId;
-
-  // --- DEBUG LOGGER ---
-  // Press F12 in your browser to see this! It will instantly tell you why it's failing.
-  console.log(`Checking message: "${message.content}"`, {
-    senderId: safeSenderId,
-    myId: safeMyId,
-    isMe: isMe
-  });
-  // --------------------
 
   const content = message.content || ''; 
   const senderUsername = message.senderId?.username || (isMe ? currentUser?.username : 'Unknown User'); 
   const status = message.status || 'delivered'; 
   
   const timeString = new Date(message.timestamp || message.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
   return (
     <div className={`flex items-end gap-2 mb-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
       <div className="w-8 flex-shrink-0">
@@ -56,14 +43,42 @@ export default function MessageBubble({ message, showAvatar, showName, isGroupCh
 
         <div className="relative group">
           <div
-            className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+            className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed flex flex-col gap-2 ${
               isMe
                 ? 'bg-blue-500 text-white rounded-br-sm'
                 : 'bg-white text-slate-800 rounded-bl-sm shadow-sm border border-slate-100'
             }`}
           >
-            {/* Display the correct MongoDB content property */}
-            {content}
+            {/* --- NEW: MEDIA RENDERER --- */}
+            {message.mediaUrl && message.mediaType === 'image' && (
+              <img 
+                src={message.mediaUrl} 
+                alt="attachment" 
+                className="max-w-full rounded-lg max-h-64 object-cover"
+              />
+            )}
+            
+            {message.mediaUrl && message.mediaType === 'video' && (
+              <video 
+                src={message.mediaUrl} 
+                controls 
+                className="max-w-full rounded-lg max-h-64"
+              />
+            )}
+
+            {message.mediaUrl && message.mediaType === 'document' && (
+              <a 
+                href={message.mediaUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={`flex items-center gap-2 p-2 rounded-lg underline ${isMe ? 'bg-blue-600 text-white' : 'bg-slate-100 text-blue-600'}`}
+              >
+                📄 {message.mediaName || 'Download Document'}
+              </a>
+            )}
+
+            {/* Display the correct MongoDB content property (if there is text) */}
+            {content && <span>{content}</span>}
           </div>
 
           {/* Reactions */}
@@ -79,7 +94,7 @@ export default function MessageBubble({ message, showAvatar, showName, isGroupCh
               ))}
             </div>
           )}
-        </div>
+        </div> {/* <--- THIS WAS THE MISSING DIV */}
 
         <div className={`flex items-center gap-1 mt-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
           <span className="text-xs text-slate-400">{timeString}</span>

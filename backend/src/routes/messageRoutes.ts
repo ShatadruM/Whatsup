@@ -1,13 +1,23 @@
 import { Router } from 'express';
-import { getMessages, sendMessage, deleteMessage } from '../controllers/messageController';
+import multer from 'multer';
+import { sendMessage, getMessages, deleteMessage, sendMessageWithMedia } from '../controllers/messageController';
 import { protectRoute } from '../middleware/authMiddleware';
 
 const router = Router();
 
-router.use(protectRoute);
+// 1. Configure Multer to hold the file in memory
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 15 * 1024 * 1024 } // 15MB limit
+});
 
-router.get('/:chatId', getMessages);
-router.post('/', sendMessage);
-router.delete('/:messageId', deleteMessage)
+// 2. Add upload.single('media') to the route!
+router.post('/media', protectRoute, upload.single('media'), sendMessageWithMedia);
+
+// Your existing routes
+router.post('/', protectRoute, sendMessage);
+router.get('/:chatId', protectRoute, getMessages);
+router.delete('/:messageId', protectRoute, deleteMessage);
 
 export default router;

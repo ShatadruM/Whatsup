@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { Conversation, Message, User } from '../../types';
+// import { Conversation, Message, User } from '../../types'; // Adjust imports if needed based on your redux/types
 import ChatHeader from './ChatHeader';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import InfoPanel from './InfoPanel';
 
 interface ChatWindowProps {
-  conversation: Conversation;
-  messages: Message[];
-  members?: User[];
-  onSendMessage: (text: string) => void;
+  conversation: any; // Or your Conversation type
+  messages: any[];   // Or your Message type
+  members?: any[];   // Or your User type
+  
+  // 1. UPDATED: Tell the interface to accept the optional file
+  onSendMessage: (text: string, file: File | null) => void;
 }
 
 export default function ChatWindow({ conversation, messages, members, onSendMessage }: ChatWindowProps) {
@@ -27,10 +29,9 @@ export default function ChatWindow({ conversation, messages, members, onSendMess
           messages={messages}
           isGroupChat={conversation.type === 'group'}
         />
-        <MessageInput
-          onSend={onSendMessage}
-          placeholder={`Message ${conversation.name}...`}
-        />
+        
+        {/* 2. UPDATED: Call the prop 'onSendMessage', not 'sendMessage' */}
+        <MessageInput onSend={(text, file) => onSendMessage(text, file)} />
       </div>
 
       {showInfo && (

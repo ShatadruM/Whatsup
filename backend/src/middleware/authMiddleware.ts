@@ -1,15 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_fallback_key';
 
 // 1. Extend the Express Request interface to include our custom user payload
-export interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    username: string;
-  };
-}
+    export interface AuthRequest extends Request {
+      user?: {
+        userId: string;
+        username: string;
+      };
+      file?: Express.Multer.File;
+    }
 
 export const protectRoute = (req: AuthRequest, res: Response, next: NextFunction): void => {
   try {

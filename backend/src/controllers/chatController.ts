@@ -86,6 +86,13 @@ export const getUserChats = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const currentUserId = req.user?.userId;
 
+    // 1. ADD THIS CHECK
+    if (!currentUserId) {
+      res.status(401).json({ message: 'Unauthorized: User ID is missing' });
+      return;
+    }
+
+    // 2. TypeScript now knows currentUserId is definitely a string!
     const chats = await Chat.find({
       participants: { $in: [currentUserId] }
     })
