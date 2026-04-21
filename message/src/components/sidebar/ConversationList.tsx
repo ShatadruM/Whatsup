@@ -1,6 +1,6 @@
 import { Conversation } from '../../types';
 import ConversationItem from './ConversationItem';
-import { useAppSelector } from '../../store/hooks'; // Need this to identify the logged-in user
+import { useAppSelector } from '../../store/hooks'; 
 
 interface ConversationListProps {
   conversations: Conversation[];

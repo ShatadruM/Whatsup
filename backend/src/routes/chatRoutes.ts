@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createOrFetchChat, getUserChats, removeFromGroup,createGroupChat} from '../controllers/chatController';
+import { createOrFetchChat, getUserChats, removeFromGroup, createGroupChat, promoteToAdmin, addToGroup} from '../controllers/chatController';
 import { protectRoute } from '../middleware/authMiddleware';
 
 const router = Router();
@@ -9,7 +9,9 @@ router.use(protectRoute);
 
 router.post('/', createOrFetchChat);
 router.get('/', getUserChats);
-router.put('/group/remove', removeFromGroup)
-router.post('/group', createGroupChat)
+router.post('/group', protectRoute, createGroupChat);
+router.put('/group/add', protectRoute, addToGroup);
+router.put('/group/remove', protectRoute, removeFromGroup);
+router.put('/group/promote', protectRoute, promoteToAdmin);
 
 export default router;

@@ -16,7 +16,6 @@ export interface Chat {
   participants: any[]; // Or your User[] interface
   chatName?: string;
   groupAdmins?: any[];
-  
   // --- ADD THESE NEW PROPERTIES ---
   lastMessage?: string | any; // 'any' is safe here if it could be a string or an object from MongoDB
   lastMessageTime?: string;

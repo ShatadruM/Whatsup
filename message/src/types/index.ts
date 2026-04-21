@@ -24,19 +24,17 @@ export interface Message {
 
 export interface Conversation {
   _id: string;
-  type: 'dm' | 'group';
-  username: string;
-  avatar?: string;
-  lastMessage: string;
-  lastMessageTime: string;
-  unreadCount: number;
-  isOnline?: boolean;
-  status?: UserStatus;
-  members?: User[];
-  memberCount?: number;
-  description?: string;
-  isTyping?: boolean;
-  pinnedMessage?: string;
+  type: '1:1' | 'group';
+  participants: User[]; // The populated array of users
+  chatName?: string; // Only exists on group chats
+  groupAdmins?: User[]; // Only exists on group chats
+  
+  // These might come from your latestMessage population or Redux state
+  latestMessage?: any; // Optional: Change 'any' to your actual Message interface
+  unreadCount?: number; 
+  
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ActiveChat {
