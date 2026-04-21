@@ -22,36 +22,47 @@ export default function CreateGroupModal({ isOpen, onClose }: CreateGroupModalPr
   const [groupName, setGroupName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
-  // --- EXTRACT CONTACTS FROM EXISTING 1:1 CHATS ---
+  // --- 1. BULLETPROOF CONTACTS EXTRACTOR ---
   const contacts = useMemo(() => {
     const uniqueUsers = new Map();
+    const myId = String(currentUser?._id || (currentUser as any)?.id);
     
-    // SAFETY CHECK: Ensure conversations exists before looping
     if (conversations && Array.isArray(conversations)) {
       conversations.forEach((chat: any) => {
-        // Only look at 1:1 chats
         if (chat.type === '1:1') {
-          // Find the person who isn't the current user
-          const otherUser = chat.participants.find((p: any) => p._id !== currentUser?._id);
-          // Add them to our map to ensure no duplicates
-          if (otherUser && !uniqueUsers.has(otherUser._id)) {
-            uniqueUsers.set(otherUser._id, otherUser);
+          // Safely find the other participant
+          const otherUser = chat.participants?.find((p: any) => {
+            const pId = typeof p === 'string' ? p : String(p._id || p.id);
+            return pId !== myId;
+          });
+
+          // Ensure it's a populated object (has a username) before adding it
+          if (otherUser && typeof otherUser !== 'string') {
+            const otherUserId = String(otherUser._id || otherUser.id);
+            if (!uniqueUsers.has(otherUserId)) {
+              uniqueUsers.set(otherUserId, otherUser);
+            }
           }
         }
       });
     }
     return Array.from(uniqueUsers.values());
-  }, [conversations, currentUser]); // Updated dependency array
+  }, [conversations, currentUser]); 
 
   // Filter contacts based on search bar
   const filteredContacts = contacts.filter(contact => 
-    contact.username.toLowerCase().includes(searchQuery.toLowerCase())
+    contact.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // --- 2. BULLETPROOF SELECTION TOGGLER ---
   const toggleUser = (user: any) => {
-    if (selectedUsers.find((u) => u._id === user._id)) {
-      setSelectedUsers(selectedUsers.filter((u) => u._id !== user._id));
+    const userId = String(user._id || user.id);
+    
+    if (selectedUsers.some((u) => String(u._id || u.id) === userId)) {
+      // Remove them
+      setSelectedUsers(selectedUsers.filter((u) => String(u._id || u.id) !== userId));
     } else {
+      // Add them
       setSelectedUsers([...selectedUsers, user]);
     }
   };
@@ -63,15 +74,13 @@ export default function CreateGroupModal({ isOpen, onClose }: CreateGroupModalPr
     try {
       const { data } = await axios.post('http://localhost:5000/api/chats/group', {
         name: groupName,
-        participants: JSON.stringify(selectedUsers.map(u => u._id))
+        // Ensure we send clean string IDs to the backend
+        participants: JSON.stringify(selectedUsers.map(u => String(u._id || u.id)))
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // 1. Add the new group to your sidebar list
       dispatch(addConversation(data));
-      
-      // 2. Instantly switch the user into the new group chat!
       dispatch(setActiveConversation(data)); 
       
       handleClose();
@@ -118,20 +127,23 @@ export default function CreateGroupModal({ isOpen, onClose }: CreateGroupModalPr
         {step === 1 && (
           <div className="flex-1 flex flex-col overflow-hidden relative">
             
-            {/* Selected Users Strip (WhatsApp style) */}
+            {/* Selected Users Strip */}
             {selectedUsers.length > 0 && (
               <div className="px-4 py-3 border-b border-slate-100 flex gap-4 overflow-x-auto no-scrollbar">
-                {selectedUsers.map(user => (
-                  <div key={user._id} className="flex flex-col items-center gap-1 relative w-14 flex-shrink-0 cursor-pointer" onClick={() => toggleUser(user)}>
-                    <div className="relative">
-                      <Avatar username={user.username} size="md" />
-                      <div className="absolute -bottom-1 -right-1 bg-slate-400 text-white rounded-full p-0.5 border-2 border-white">
-                        <X size={10} />
+                {selectedUsers.map(user => {
+                  const uId = String(user._id || user.id);
+                  return (
+                    <div key={uId} className="flex flex-col items-center gap-1 relative w-14 flex-shrink-0 cursor-pointer" onClick={() => toggleUser(user)}>
+                      <div className="relative">
+                        <Avatar username={user.username} size="md" />
+                        <div className="absolute -bottom-1 -right-1 bg-slate-400 text-white rounded-full p-0.5 border-2 border-white">
+                          <X size={10} />
+                        </div>
                       </div>
+                      <span className="text-[10px] text-slate-600 truncate w-full text-center">{user.username}</span>
                     </div>
-                    <span className="text-[10px] text-slate-600 truncate w-full text-center">{user.username}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -157,10 +169,13 @@ export default function CreateGroupModal({ isOpen, onClose }: CreateGroupModalPr
                   <p className="text-center text-sm text-slate-400 py-4">No contacts found.</p>
                 ) : (
                   filteredContacts.map(user => {
-                    const isSelected = selectedUsers.some(u => u._id === user._id);
+                    const uId = String(user._id || user.id);
+                    // --- 3. BULLETPROOF IS-SELECTED CHECK ---
+                    const isSelected = selectedUsers.some(u => String(u._id || u.id) === uId);
+                    
                     return (
                       <button 
-                        key={user._id} 
+                        key={uId} 
                         onClick={() => toggleUser(user)}
                         className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl transition"
                       >
@@ -223,7 +238,7 @@ export default function CreateGroupModal({ isOpen, onClose }: CreateGroupModalPr
             <p className="text-sm text-slate-500 mb-4">Participants: {selectedUsers.length}</p>
             <div className="flex flex-wrap gap-2">
               {selectedUsers.map(user => (
-                <span key={user._id} className="text-xs bg-slate-100 px-2 py-1 rounded-full text-slate-600">
+                <span key={String(user._id || user.id)} className="text-xs bg-slate-100 px-2 py-1 rounded-full text-slate-600">
                   {user.username}
                 </span>
               ))}

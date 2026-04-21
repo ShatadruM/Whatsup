@@ -1,33 +1,28 @@
 import { Users } from 'lucide-react';
-import { Conversation } from '../../types'; // You might need to update this type to match the Redux Chat interface
+import { Conversation } from '../../types'; 
 import Avatar from '../common/Avatar';
-import { useAppSelector } from '../../store/hooks'; // <-- Add this import
 
 interface ConversationItemProps {
-  conversation: any; // Using 'any' temporarily if your Conversation type doesn't match MongoDB yet
+  conversation: any; 
   isActive: boolean;
+  displayName?: string;   // Now we will actually use this!
+  displayAvatar?: string; // And this!
+  isOnline?: boolean;     // And this!
   onClick: () => void;
 }
 
-export default function ConversationItem({ conversation, isActive, onClick }: ConversationItemProps) {
-  // Grab the logged in user
-  const currentUser = useAppSelector((state) => state.auth.user);
-
-  // We DO NOT destructure 'username' or 'status' here anymore, because they don't exist on the root chat object!
+// 1. DESTRUCTURE THE PROPS HERE
+export default function ConversationItem({ 
+  conversation, 
+  isActive, 
+  displayName = 'Unknown', // Default fallback
+  displayAvatar,
+  isOnline = false,
+  onClick 
+}: ConversationItemProps) {
+  
+  // 2. NO MORE INTERNAL CALCULATIONS. Just grab the basic message data.
   const { type, lastMessage, lastMessageTime, unreadCount, memberCount, isTyping } = conversation;
-
-  // --- DYNAMICALLY CALCULATE NAME & STATUS ---
-  let displayName = 'Unknown User';
-  let displayStatus = 'offline';
-
-  if (type === 'group') {
-    displayName = conversation.chatName || 'Group Chat';
-  } else {
-    // 1:1 Chat: Find the person who is NOT the current user
-    const otherUser = conversation.participants?.find((p: any) => p._id !== currentUser?._id);
-    displayName = otherUser?.username || 'Unknown User';
-    displayStatus = otherUser?.status || 'offline';
-  }
 
   return (
     <button
@@ -45,9 +40,9 @@ export default function ConversationItem({ conversation, isActive, onClick }: Co
           </div>
         ) : (
           <Avatar
-            username={displayName} // Pass the calculated name here!
+            username={displayName} // 3. Use the prop directly!
             size="md"
-            status={displayStatus as any} // Pass the calculated status here!
+            status={isOnline ? 'online' : 'offline'} // 4. Use the prop directly!
             showStatus
           />
         )}
@@ -56,7 +51,7 @@ export default function ConversationItem({ conversation, isActive, onClick }: Co
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
           <span className={`text-sm font-semibold truncate ${isActive ? 'text-white' : 'text-slate-200'}`}>
-            {displayName /* Display the calculated name here! */}
+            {displayName /* 5. Use the prop directly! */}
           </span>
           <span className={`text-xs flex-shrink-0 ml-1 ${isActive ? 'text-blue-200' : 'text-slate-500'}`}>
             {lastMessageTime}
@@ -75,7 +70,6 @@ export default function ConversationItem({ conversation, isActive, onClick }: Co
             </div>
           ) : (
             <p className={`text-xs truncate ${isActive ? 'text-blue-200' : 'text-slate-400'}`}>
-              {/* If lastMessage is an object from MongoDB, you might need to do lastMessage?.content */}
               {lastMessage || "Started a conversation"} 
             </p>
           )}
